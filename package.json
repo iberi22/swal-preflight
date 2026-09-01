@@ -1,0 +1,28 @@
+{
+  "name": "@swal/preflight",
+  "version": "0.1.0",
+  "description": "SWAL preflight — version sync, release flow, and intelligent wave preflight (resource scan + cost estimator + LLM router) for any SWAL app",
+  "type": "module",
+  "bin": {
+    "swal-preflight": "./bin/swal-preflight.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "lint": "eslint .",
+    "preflight": "node ./bin/swal-preflight.js preflight",
+    "check": "node ./bin/swal-preflight.js check"
+  },
+  "keywords": ["swal", "semver", "preflight", "versioning", "llm-routing", "devops"],
+  "author": "SWAL Systems <bela@swal.dev>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iberi22/swal-preflight"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "semver": "^7.6.3"
+  }
+}
