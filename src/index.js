@@ -47,7 +47,7 @@ Docs: ~/proyectosSWAL/docs/SWAL/VERSIONING.md
 
 export async function run(args) {
   const { cmd, opts } = parseArgs(args);
-  if (!cmd || cmd === 'help' || opts.help || opts.h) return help();
+  if (!cmd || cmd === 'help' || cmd === '--help' || opts.help || opts.h) return help();
   if (cmd === 'check') return checkCommand(opts);
   if (cmd === 'bump') return bumpCommand(opts);
   if (cmd === 'release') return releaseCommand(opts);
