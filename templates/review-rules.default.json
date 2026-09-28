@@ -1,0 +1,15 @@
+{
+  "forbidden_patterns": [
+    "kimi",
+    "qwen3.8-max"
+  ],
+  "rules": [
+    {
+      "file_glob": "docs/**/*.md|**/*DAG.json",
+      "forbid": "(?i)owner (approval|accepts|approves)",
+      "unless_near": "final product acceptance|outward|branch rule|ruleset|credential",
+      "severity": "blocking",
+      "message": "Owner approval language must be qualified with 'final product acceptance', 'outward', 'branch rule', 'ruleset', or 'credential'"
+    }
+  ]
+}
