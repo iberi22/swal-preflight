@@ -84,6 +84,10 @@ export async function reviewCommand(opts = {}) {
     console.log(`  ${badge} ${f.file}:${f.line} — [${f.check}] ${f.message}`);
   }
 
-  console.log(`\nVerdict: ❌ FAIL — address blocking findings before submitting to review panel.\n`);
+  if (blocking.length > 0) {
+    console.log(`\nVerdict: ❌ FAIL — address blocking findings before submitting to review panel.\n`);
+  } else {
+    console.log(`\nVerdict: ✅ PASS — no blocking findings (${warnings.length} warning(s) to consider).\n`);
+  }
   return findings;
 }

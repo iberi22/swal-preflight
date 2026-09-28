@@ -57,7 +57,7 @@ export async function run(args) {
   if (cmd === 'preflight') return preflightCommand(opts);
   if (cmd === 'review') {
     const findings = await reviewCommand(opts);
-    if (findings && findings.length > 0) {
+    if (findings && findings.some(f => f.severity === 'blocking')) {
       process.exitCode = 1;
     }
     return findings;
