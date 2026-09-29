@@ -8,6 +8,7 @@ const FIXTURE_DIRS = new Set(['fixtures', 'testdata', 'snapshots']);
 const FIXTURE_EXTS = new Set(['.snap', '.golden', '.bin']);
 const DATA_EXTS = new Set(['.json', '.toml', '.yaml']);
 const CFG_TEST_RE = /^\s*#\[cfg\(test\)\]/;
+const LOCKFILES = new Set(['pnpm-lock.yaml', 'package-lock.json', 'yarn.lock', 'Cargo.lock', 'pubspec.lock', 'bun.lockb', 'poetry.lock']);
 const HUNK_RE = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
 
 function git(cwd, args) {
@@ -251,12 +252,14 @@ export async function checkScope({
     fixture: toLimit(maxFixtureLines, 50)
   };
   const exempt = formatterOnlyFiles(cwd, base, changed);
+  // Lockfiles are machine-generated from the manifest (which is counted); never review-sized.
+  for (const f of changed) if (LOCKFILES.has(path.posix.basename(f))) exempt.add(f);
   const counts = countChangedLines(cwd, base, exempt);
   const message =
     `Changed lines: non-test ${counts.nonTest}/${limits.nonTest}, ` +
     `test ${counts.test}/${limits.test}, ` +
     `fixture ${counts.fixture}/${limits.fixture}` +
-    (exempt.size ? ` (formatter-only, not counted: ${[...exempt].join(', ')})` : '');
+    (exempt.size ? ` (formatter-only or lockfile, not counted: ${[...exempt].join(', ')})` : '');
 
   const exceeded = [
     { limit: 'maxLines', kind: 'nonTest' },

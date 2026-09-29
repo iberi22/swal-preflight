@@ -26,3 +26,15 @@ test('scope: a rustfmt-only change is exempt, a formatted+edited one is not', (t
   assert.ok(exempt.has('src/a.rs'));
   assert.ok(!exempt.has('src/b.rs'));
 });
+
+test('scope: lockfiles do not count toward the size limits', async (t) => {
+  const { checkScope } = await import('../../src/commands/review/scope.js');
+  const repo = createTempRepo();
+  t.after(() => repo.cleanup());
+  fs.writeFileSync(path.join(repo.dir, 'pnpm-lock.yaml'), 'lockfileVersion: 9\n');
+  repo.commitAll('base');
+  const base = execSync('git rev-parse HEAD', { cwd: repo.dir, encoding: 'utf8' }).trim();
+  fs.writeFileSync(path.join(repo.dir, 'pnpm-lock.yaml'), Array.from({ length: 900 }, (_, i) => `pkg${i}: 1.0.0`).join('\n') + '\n');
+  const findings = await checkScope({ cwd: repo.dir, base });
+  assert.equal(findings.length, 0);
+});
