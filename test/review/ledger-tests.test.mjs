@@ -53,3 +53,19 @@ test('ledger-tests check: positive and negative cases', async (t) => {
   assert.equal(posFindings[0].severity, 'blocking');
   assert.match(posFindings[0].message, /test_missing_function/);
 });
+
+test('ledger-tests check: count-annotated dart filters resolve', async (t) => {
+  const repo = createTempRepo();
+  t.after(() => repo.cleanup());
+  fs.mkdirSync(path.join(repo.dir, '.gitcore'), { recursive: true });
+  fs.mkdirSync(path.join(repo.dir, 'test/core'), { recursive: true });
+  fs.writeFileSync(path.join(repo.dir, 'test/core/crypto_test.dart'), 'void main() {}\n');
+  fs.writeFileSync(
+    path.join(repo.dir, '.gitcore/features.json'),
+    JSON.stringify({ features: { vault: { id: 'vault', status: 'stable',
+      tests: ['test/core/crypto_test.dart (13)', 'test/core/missing_test.dart (2)'] } } }, null, 2)
+  );
+  const findings = await checkLedgerTests({ cwd: repo.dir });
+  assert.equal(findings.length, 1);
+  assert.match(findings[0].message, /missing_test\.dart/);
+});

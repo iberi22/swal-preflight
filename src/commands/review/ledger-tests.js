@@ -18,7 +18,9 @@ function findLineInFile(filePath, searchString) {
   return 1;
 }
 
-export function testFilterExists(cwd, testFilter, searchDirs) {
+export function testFilterExists(cwd, rawFilter, searchDirs) {
+  // ledgers annotate filters with a count, e.g. "test/core/crypto_test.dart (13)"
+  const testFilter = rawFilter.replace(/\s+\([^)]*\)\s*$/, '').trim();
   // 1. Direct file
   if (fs.existsSync(path.join(cwd, testFilter))) return true;
   if (fs.existsSync(path.join(cwd, testFilter + '.rs'))) return true;
@@ -107,7 +109,7 @@ export async function checkLedgerTests({ cwd = process.cwd() } = {}) {
   const rawFeats = ledger.features ? Object.values(ledger.features) : (ledger.items || (Array.isArray(ledger) ? ledger : []));
   const feats = Array.isArray(rawFeats) ? rawFeats : Object.values(rawFeats);
 
-  const searchDirs = ['src', 'tests', 'crates', 'code-graph'].filter(d => fs.existsSync(path.join(cwd, d)));
+  const searchDirs = ['src', 'test', 'tests', 'crates', 'code-graph'].filter(d => fs.existsSync(path.join(cwd, d)));
 
   // Test-first declarations on not-yet-implemented features are expected; only
   // implemented features (a green verify run would promote them) must resolve.
