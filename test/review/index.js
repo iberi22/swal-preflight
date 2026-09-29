@@ -6,4 +6,4 @@ import './citations.test.mjs';
 import './scope.test.mjs';
 import './leaks.test.mjs';
 import './numeric-consistency.test.mjs';
-import './review-command.test.mjs';
+import './review-command.test.mjs';import './scope-formatter.test.mjs';

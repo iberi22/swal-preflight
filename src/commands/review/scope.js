@@ -109,11 +109,53 @@ function classifierFor(cwd, base, file) {
   return { added: () => 'nonTest', removed: () => 'nonTest' };
 }
 
+// A file whose change is exactly "the formatter was applied to the base version"
+// is mechanical: it does not count toward the size limits. The base version is
+// formatted next to the real file so the package's formatter config applies.
+function formatBaseVersion(cwd, file, oldContent) {
+  const ext = extOf(file);
+  const dir = path.join(cwd, path.dirname(file));
+  if (ext === '.rs') {
+    try {
+      return execSync('rustfmt --emit stdout --edition 2021', {
+        cwd: dir, input: oldContent, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe']
+      });
+    } catch {
+      return null;
+    }
+  }
+  if (ext === '.dart') {
+    const tmp = path.join(dir, `.preflight-fmt-${process.pid}-${Date.now()}.dart`);
+    try {
+      fs.writeFileSync(tmp, oldContent);
+      execSync(`dart format ${JSON.stringify(tmp)}`, { cwd: dir, stdio: ['pipe', 'pipe', 'pipe'] });
+      return fs.readFileSync(tmp, 'utf8');
+    } catch {
+      return null;
+    } finally {
+      try { fs.unlinkSync(tmp); } catch {}
+    }
+  }
+  return null;
+}
+
+export function formatterOnlyFiles(cwd, base, files) {
+  const exempt = new Set();
+  for (const file of files) {
+    if (!['.rs', '.dart'].includes(extOf(file))) continue;
+    const oldContent = readOldContent(cwd, base, file);
+    const newContent = readNewContent(cwd, file);
+    if (oldContent === null || newContent === null || oldContent === newContent) continue;
+    if (formatBaseVersion(cwd, file, oldContent) === newContent) exempt.add(file);
+  }
+  return exempt;
+}
+
 function stripDiffPrefix(p) {
   return p.replace(/^[ab]\//, '');
 }
 
-function countChangedLines(cwd, base) {
+function countChangedLines(cwd, base, exempt = new Set()) {
   const counts = { nonTest: 0, test: 0, fixture: 0 };
   const diff = git(cwd, `diff -U0 ${base}`);
   if (diff === null) return counts;
@@ -142,6 +184,7 @@ function countChangedLines(cwd, base) {
       const p = line.slice(4).trim();
       newFile = p === '/dev/null' ? null : stripDiffPrefix(p);
       classifier = classifierFor(cwd, base, newFile || oldFile);
+      if (exempt.has(newFile || oldFile)) classifier = null;
       continue;
     }
     const hunk = HUNK_RE.exec(line);
@@ -151,7 +194,7 @@ function countChangedLines(cwd, base) {
       inHunk = true;
       continue;
     }
-    if (!inHunk) continue;
+    if (!inHunk || classifier === null) continue;
     if (line.startsWith('+')) {
       counts[classifier.added(newLine)]++;
       newLine++;
@@ -207,11 +250,13 @@ export async function checkScope({
     test: toLimit(maxTestLines, 400),
     fixture: toLimit(maxFixtureLines, 50)
   };
-  const counts = countChangedLines(cwd, base);
+  const exempt = formatterOnlyFiles(cwd, base, changed);
+  const counts = countChangedLines(cwd, base, exempt);
   const message =
     `Changed lines: non-test ${counts.nonTest}/${limits.nonTest}, ` +
     `test ${counts.test}/${limits.test}, ` +
-    `fixture ${counts.fixture}/${limits.fixture}`;
+    `fixture ${counts.fixture}/${limits.fixture}` +
+    (exempt.size ? ` (formatter-only, not counted: ${[...exempt].join(', ')})` : '');
 
   const exceeded = [
     { limit: 'maxLines', kind: 'nonTest' },
