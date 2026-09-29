@@ -125,7 +125,7 @@ function formatBaseVersion(cwd, file, oldContent) {
     }
   }
   if (ext === '.dart') {
-    const tmp = path.join(dir, `.preflight-fmt-${process.pid}-${Date.now()}.dart`);
+    const tmp = path.join(dir, `preflight_fmt_tmp_${process.pid}_${Date.now()}.dart`);
     try {
       fs.writeFileSync(tmp, oldContent);
       execSync(`dart format ${JSON.stringify(tmp)}`, { cwd: dir, stdio: ['pipe', 'pipe', 'pipe'] });
