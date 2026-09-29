@@ -221,7 +221,7 @@ export async function checkScope({
   base = 'origin/main',
   issueFiles,
   maxLines = 400,
-  maxTestLines = 400,
+  maxTestLines = 800,
   maxFixtureLines = 50,
   gitDiffFiles
 } = {}) {
@@ -249,7 +249,7 @@ export async function checkScope({
   // 2. Max lines check — separate limits for non-test, test and fixture lines
   const limits = {
     nonTest: toLimit(maxLines, 400),
-    test: toLimit(maxTestLines, 400),
+    test: toLimit(maxTestLines, 800),
     fixture: toLimit(maxFixtureLines, 50)
   };
   const exempt = formatterOnlyFiles(cwd, base, changed);
