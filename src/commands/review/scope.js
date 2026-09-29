@@ -57,7 +57,7 @@ function isFixtureFile(file) {
 function isTestFile(file) {
   if (dirSegmentsOf(file).some(d => TEST_DIRS.has(d))) return true;
   const name = segmentsOf(file).pop();
-  return /(^|_)tests?\.rs$/.test(name) || /\.test\.[^.]+$/.test(name) || /\.spec\.[^.]+$/.test(name);
+  return /(^|_)tests?\.rs$/.test(name) || /_test\.dart$/.test(name) || /\.test\.[^.]+$/.test(name) || /\.spec\.[^.]+$/.test(name);
 }
 
 function firstCfgTestLine(content) {
