@@ -247,9 +247,10 @@ export async function checkScope({
   }
 
   // 2. Max lines check — separate limits for non-test, test and fixture lines
+  // Per-task exception (recorded in the issue): SWAL_MAX_LINES / SWAL_MAX_TEST_LINES override the defaults.
   const limits = {
-    nonTest: toLimit(maxLines, 400),
-    test: toLimit(maxTestLines, 800),
+    nonTest: toLimit(process.env.SWAL_MAX_LINES || maxLines, 400),
+    test: toLimit(process.env.SWAL_MAX_TEST_LINES || maxTestLines, 800),
     fixture: toLimit(maxFixtureLines, 50)
   };
   const exempt = formatterOnlyFiles(cwd, base, changed);
