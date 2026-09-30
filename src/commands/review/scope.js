@@ -157,8 +157,33 @@ function stripDiffPrefix(p) {
   return p.replace(/^[ab]\//, '');
 }
 
+const MOVE_WINDOW = 3;
+
+// Lines relocated verbatim (modulo indentation) are a move, not new code: a line is
+// "moved" when it sits in a window of MOVE_WINDOW consecutive non-blank changed lines
+// whose text also appears, in the same order, on the other side of the diff.
+function markMoved(runsA, runsB) {
+  const key = w => w.map(e => e.text).join('\n');
+  const shingles = new Set();
+  for (const run of runsB) {
+    const nb = run.filter(e => e.text !== '');
+    for (let i = 0; i + MOVE_WINDOW <= nb.length; i++) shingles.add(key(nb.slice(i, i + MOVE_WINDOW)));
+  }
+  for (const run of runsA) {
+    const nb = run.filter(e => e.text !== '');
+    for (let i = 0; i + MOVE_WINDOW <= nb.length; i++) {
+      const w = nb.slice(i, i + MOVE_WINDOW);
+      if (shingles.has(key(w))) for (const e of w) e.moved = true;
+    }
+    // a blank line inside a moved block moves with it
+    for (let i = 1; i < run.length - 1; i++) {
+      if (run[i].text === '' && run[i - 1].moved && run[i + 1].moved) run[i].moved = true;
+    }
+  }
+}
+
 function countChangedLines(cwd, base, exempt = new Set()) {
-  const counts = { nonTest: 0, test: 0, fixture: 0 };
+  const counts = { nonTest: 0, test: 0, fixture: 0, moved: 0 };
   const diff = git(cwd, `diff -U0 ${base}`);
   if (diff === null) return counts;
 
@@ -168,6 +193,19 @@ function countChangedLines(cwd, base, exempt = new Set()) {
   let newLine = 0;
   let oldLine = 0;
   let inHunk = false;
+  const addedRuns = [];
+  const removedRuns = [];
+  let run = null;
+  let runSide = null;
+  const push = (side, entry) => {
+    if (run === null || runSide !== side) {
+      run = [];
+      runSide = side;
+      (side === '+' ? addedRuns : removedRuns).push(run);
+    }
+    run.push(entry);
+  };
+  const endRun = () => { run = null; runSide = null; };
 
   for (const line of diff.split('\n')) {
     if (line.startsWith('diff --git ')) {
@@ -175,6 +213,7 @@ function countChangedLines(cwd, base, exempt = new Set()) {
       oldFile = null;
       newFile = null;
       inHunk = false;
+      endRun();
       continue;
     }
     if (line.startsWith('--- ')) {
@@ -194,25 +233,36 @@ function countChangedLines(cwd, base, exempt = new Set()) {
       oldLine = parseInt(hunk[1], 10);
       newLine = parseInt(hunk[2], 10);
       inHunk = true;
+      endRun();
       continue;
     }
     if (!inHunk || classifier === null) continue;
     if (line.startsWith('+')) {
-      counts[classifier.added(newLine)]++;
+      push('+', { kind: classifier.added(newLine), text: line.slice(1).trim(), moved: false });
       newLine++;
     } else if (line.startsWith('-')) {
-      counts[classifier.removed(oldLine)]++;
+      push('-', { kind: classifier.removed(oldLine), text: line.slice(1).trim(), moved: false });
       oldLine++;
     } else if (line.startsWith(' ')) {
       newLine++;
       oldLine++;
+      endRun();
     } else if (line.startsWith('\\')) {
       continue;
     } else {
       inHunk = false;
+      endRun();
     }
   }
 
+  if (process.env.SWAL_COUNT_MOVES !== '1') {
+    markMoved(addedRuns, removedRuns);
+    markMoved(removedRuns, addedRuns);
+  }
+  for (const entry of [...addedRuns.flat(), ...removedRuns.flat()]) {
+    if (entry.moved) counts.moved++;
+    else counts[entry.kind]++;
+  }
   return counts;
 }
 
@@ -266,6 +316,7 @@ export async function checkScope({
     `Changed lines: non-test ${counts.nonTest}/${limits.nonTest}, ` +
     `test ${counts.test}/${limits.test}, ` +
     `fixture ${counts.fixture}/${limits.fixture}` +
+    (counts.moved ? ` (moved verbatim, not counted: ${counts.moved})` : '') +
     (exempt.size ? ` (formatter-only, lockfile or generated, not counted: ${[...exempt].join(', ')})` : '');
 
   const exceeded = [
