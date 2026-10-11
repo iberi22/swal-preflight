@@ -1,0 +1,21 @@
+{
+  "forbidden_patterns": [
+    "kimi",
+    "qwen3.8-max"
+  ],
+  "rules": [
+    {
+      "file_glob": "docs/**/*.md|**/*DAG.json",
+      "forbid": "(?i)owner (approval|accepts|approves)",
+      "unless_near": "final product acceptance|outward|branch rule|ruleset|credential",
+      "severity": "blocking",
+      "message": "Owner approval language must be qualified with 'final product acceptance', 'outward', 'branch rule', 'ruleset', or 'credential'"
+    },
+    {
+      "file_glob": "**/*.rs",
+      "forbid": "rustfmt::skip|rustfmt_skip",
+      "severity": "blocking",
+      "message": "rustfmt skip attributes are forbidden: they hide density and let changes evade the changed-line limit; format the code and split the task instead"
+    }
+  ]
+}

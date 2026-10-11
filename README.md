@@ -31,6 +31,27 @@ swal-preflight check --cwd ~/proyectosSWAL/apps/xavier
 | `bump [--to <version>] [--dry-run]` | Suggests or executes SemVer bump across all manifests |
 | `release --tag v0.1.0 [--push] [--dry-run]` | Creates annotated tag + optional push + `gh release` |
 | `preflight [--wave 10] [--app <id>] [--json]` | **Preparation protocol**: scans providers, estimates cost, routes |
+| `review [--cwd <path>] [--base origin/main] [--issue-files <list>] [--max-lines 400] [--json]` | **Review preflight**: deterministic zero-LLM checks before AI review panel |
+
+## Review preflight (`review`)
+
+A deterministic, zero-LLM preflight that must pass before an AI review panel runs, preventing token waste on mechanically detectable defects:
+
+```bash
+swal-preflight review --cwd ~/proyectosSWAL/apps/xavier --base origin/main
+swal-preflight review --cwd ~/proyectosSWAL/apps/xavier --json
+```
+
+### Checks
+1. **policy-terms**: Scans changed files (and `always` files) against forbidden models/terms and paired-consistency rules (`review-rules.json` + `templates/review-rules.default.json`).
+2. **ledger-tests**: Verifies every declared test in `.gitcore/features.json` actually exists in code/tests (avoiding cargo test 0-match false positives).
+3. **env-parity**: Verifies all `.env.example` keys are read in code (warning if unused), and all env reads in changed Rust files are documented in `.env.example` (blocking if undocumented).
+4. **citations**: Validates `path/to/file.ext:N` or `:N-M` references in changed Markdown point to real line ranges within existing files.
+5. **scope**: Validates changed files belong to `--issue-files` (if given) and total lines changed (`git diff --numstat`) do not exceed `--max-lines` (default 400).
+6. **leaks**: Detects personal absolute paths (`/home/...`, `/Users/...`), `file:///` URLs, and secret-shaped strings in added lines (never printing values).
+7. **numeric-consistency** (warning): Detects inconsistent `<metric> <number> min` values across changed Markdown files.
+
+Exit codes: `0 = pass` (no findings), `1 = findings`.
 
 ## Preflight protocol (for any app)
 
