@@ -1,5 +1,7 @@
 # @swal/preflight
 
+[![CI](https://github.com/iberi22/swal-preflight/actions/workflows/ci.yml/badge.svg)](https://github.com/iberi22/swal-preflight/actions/workflows/ci.yml)
+
 **SWAL preflight — version sync, release flow, and intelligent wave preflight**
 
 Reusable CLI for any SWAL app (and beyond): validates SemVer alignment, estimates wave cost, scans available LLM providers and routes tasks intelligently. **No npm publish required — use directly from the repo while iterating.**
@@ -91,6 +93,10 @@ npm i -g @swal/preflight
 npm i -D @swal/preflight
 npx swal-preflight check
 ```
+
+## Security
+
+For security information and how to report vulnerabilities, please see our [Security Policy](SECURITY.md).
 
 ## License
 
